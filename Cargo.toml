@@ -11,13 +11,13 @@ futures = "0.3.21"
 tokio = { version = "1.17.0", features = ["io-std", "io-util", "process", "rt-multi-thread"] }
 env_logger = "0.9.0"
 log = "0.4"
-cbc = "0.1.2"
 aes = "0.8.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
-base64 = "0.13.0"
 derive_more = "0.99.17"
 byteorder = "1.4.3"
 chrono = "0.4.19"
 hex = "0.3.1"
 rusqlite = { version = "0.27.0", features = ["bundled"] }
+reqwest = { version = "0.11.10", features = ["json"] }
+urlencoding = "2.1.0"

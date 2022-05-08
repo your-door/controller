@@ -63,14 +63,14 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     let md_res = device.manufacturer_data().await;
     if let Err(_err) = md_res {
         // Ensure that devices with no config are not triggered
-        trigger::trigger_off(formated_addr).await?;
+        trigger::trigger_off(formated_addr.clone(), formated_addr.clone(), config.home_assistant.clone()).await?;
         return Ok(());
     }
 
     let md_opt = md_res.unwrap();
     if let None = md_opt {
         // Ensure that devices with no config are not triggered
-        trigger::trigger_off(formated_addr).await?;
+        trigger::trigger_off(formated_addr.clone(), formated_addr.clone(), config.home_assistant.clone()).await?;
         return Ok(());
     }
 
@@ -80,10 +80,10 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
         device.name().await?, device.rssi().await?, device.is_connected().await?, device.is_paired().await?, device.uuids().await?, device.manufacturer_data().await?);
 
     // Check if we have a config for that device
-    let c = config.devices.get_mut(&formated_addr);
+    let c = config.devices.get_mut(&formated_addr.clone());
     if let None = c {
         // Ensure that devices with no config are not triggered
-        trigger::trigger_off(formated_addr).await?;
+        trigger::trigger_off(formated_addr.clone().clone(), formated_addr.clone().clone(), config.home_assistant.clone()).await?;
         return Ok(());
     }
 
@@ -92,10 +92,10 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     // Check if we can read the key from config
     let decoded_key_res = get_from_hex_array(&device_config.key).await;
     if let Err(err) = decoded_key_res {
-        warn!("{} has a device key configured which can't be decoded: {}", formated_addr, err);
+        warn!("{} has a device key configured which can't be decoded: {}", formated_addr.clone(), err);
         
         // Ensure that devices with no config are not triggered
-        trigger::trigger_off(formated_addr).await?;
+        trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
         return Ok(());
     }
 
@@ -103,20 +103,20 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
 
     // Check if key is correct length
     if device_key.len() != 16 {
-        warn!("{} has a device key configured which is not 16 bytes long", formated_addr);
+        warn!("{} has a device key configured which is not 16 bytes long", formated_addr.clone());
         
         // Ensure that devices with no config are not triggered
-        trigger::trigger_off(formated_addr).await?;
+        trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
         return Ok(());
     }
 
     // Check if we have the correct manufacture data
     let md_sel = md.get(&device_config.manufacture);
     if let None = md_sel {
-        warn!("{} presented wrong manufacture data key", formated_addr);
+        warn!("{} presented wrong manufacture data key", formated_addr.clone());
         
         // Ensure that devices with no config are not triggered
-        trigger::trigger_off(formated_addr).await?;
+        trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
         return Ok(());
     }
 
@@ -124,10 +124,10 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
 
     // Check if md_data is correct length
     if md_data.len() != 24 {
-        warn!("{} presented invalid manufacture data length: {}", formated_addr, md_data.len());
+        warn!("{} presented invalid manufacture data length: {}", formated_addr.clone(), md_data.len());
         
         // Ensure that devices with no config are not triggered
-        trigger::trigger_off(formated_addr).await?;
+        trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
         return Ok(());
     }
 
@@ -159,8 +159,8 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
         let di = device_id.get(i)
             .ok_or(error::new("device_id has no index".to_string()))?;
         if buf[i] != *di {
-            warn!("{} presented invalid device ID", formated_addr);
-            trigger::trigger_off(formated_addr).await?;
+            warn!("{} presented invalid device ID", formated_addr.clone());
+            trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
             return Ok(());
         }
     }
@@ -175,7 +175,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     let time = byteorder::BE::read_u32(&buf[12..16]);
 
     // Get time from database
-    let timedto = database::get_times(formated_addr.clone()).await?;
+    let timedto = database::get_times(formated_addr.clone().clone()).await?;
 
     // Check for time diff
     let diff = since_the_epoch - timedto.last_seen_local;
@@ -183,19 +183,19 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
 
     // Update internal config
     if time > timedto.last_seen {
-        debug!("{}: Local time diff: {}, Tag time diff: {}", formated_addr, diff, diff_tag);
+        debug!("{}: Local time diff: {}, Tag time diff: {}", formated_addr.clone(), diff, diff_tag);
 
-        database::store_times(formated_addr.clone(), since_the_epoch, time).await?;
+        database::store_times(formated_addr.clone().clone(), since_the_epoch, time).await?;
 
-        debug!("{}: Storing decrypted time: {:?}", formated_addr, time);
+        debug!("{}: Storing decrypted time: {:?}", formated_addr.clone(), time);
     }
 
     let skew = diff.abs_diff(diff_tag as u64);
     if skew > config.allowed_skew as u64 {
-        warn!("{} time was out of sync by {}", formated_addr, skew);
+        warn!("{} time was out of sync by {}", formated_addr.clone(), skew);
         
         // Ensure that devices with no config are not triggered
-        trigger::trigger_off(formated_addr.clone()).await?;
+        trigger::trigger_off(formated_addr.clone().clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
         return Ok(());
     }            
 
@@ -212,12 +212,12 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     };
 
     // Check if we have a config for the day
-    let times_option = device_config.times.get(day);
+    let times_option = device_config.allowed_times.get(day);
     if let None = times_option {
-        info!("{} wanted to get access on a non configured day", formated_addr);
+        info!("{} wanted to get access on a non configured day", formated_addr.clone());
 
         // Ensure that devices with no config are not triggered
-        trigger::trigger_off(formated_addr).await?;
+        trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
         return Ok(());
     }
 
@@ -236,16 +236,16 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
                 let end_time = get_time(end_str).await?;
 
                 if current_time_local >= start_time && current_time_local <= end_time {
-                    info!("{} is allowed. Triggering", formated_addr);
-                    trigger::trigger_on(formated_addr).await?;
+                    info!("{} is allowed. Triggering", formated_addr.clone());
+                    trigger::trigger_on(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
                     return Ok(());
                 }
             }
         }
     }
 
-    info!("{} has no access this time of the day", formated_addr);
-    trigger::trigger_off(formated_addr).await?;
+    info!("{} has no access this time of the day", formated_addr.clone());
+    trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
     Ok(())
 }
 
@@ -269,14 +269,14 @@ async fn start_ble(config: &mut config::Config) -> error::Result<()> {
                             error!("Error in discovery with {}: {}", addr, &err);
 
                             let formated_addr = format!("{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
-                            trigger::trigger_off(formated_addr).await?;
+                            trigger::trigger_off(formated_addr.clone(), formated_addr.clone(), config.home_assistant.clone().clone()).await?;
                         }
                     }
                     AdapterEvent::DeviceRemoved(addr) => {
                         debug!("Device removed: {}", addr);
 
                         let formated_addr = format!("{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
-                        trigger::trigger_off(formated_addr).await?;
+                        trigger::trigger_off(formated_addr.clone(), formated_addr.clone(), config.home_assistant.clone().clone()).await?;
                     }
                     _ => (),
                 }
