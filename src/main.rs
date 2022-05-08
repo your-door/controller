@@ -61,7 +61,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
 
     // Check if we have MD
     let md_res = device.manufacturer_data().await;
-    if let Err(err) = md_res {
+    if let Err(_err) = md_res {
         // Ensure that devices with no config are not triggered
         trigger::trigger_off(formated_addr).await?;
         return Ok(());
@@ -92,7 +92,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     // Check if we can read the key from config
     let decoded_key_res = get_from_hex_array(&device_config.key).await;
     if let Err(err) = decoded_key_res {
-        warn!("Could not decode device key: {}", err);
+        warn!("{} has a device key configured which can't be decoded: {}", formated_addr, err);
         
         // Ensure that devices with no config are not triggered
         trigger::trigger_off(formated_addr).await?;
@@ -103,7 +103,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
 
     // Check if key is correct length
     if device_key.len() != 16 {
-        warn!("Decoded device key is not 16 bytes long");
+        warn!("{} has a device key configured which is not 16 bytes long", formated_addr);
         
         // Ensure that devices with no config are not triggered
         trigger::trigger_off(formated_addr).await?;
@@ -113,7 +113,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     // Check if we have the correct manufacture data
     let md_sel = md.get(&device_config.manufacture);
     if let None = md_sel {
-        warn!("Manufacture key is wrong");
+        warn!("{} presented wrong manufacture data key", formated_addr);
         
         // Ensure that devices with no config are not triggered
         trigger::trigger_off(formated_addr).await?;
@@ -124,7 +124,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
 
     // Check if md_data is correct length
     if md_data.len() != 24 {
-        warn!("Invalid manufacture data length: {}", md_data.len());
+        warn!("{} presented invalid manufacture data length: {}", formated_addr, md_data.len());
         
         // Ensure that devices with no config are not triggered
         trigger::trigger_off(formated_addr).await?;
@@ -159,7 +159,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
         let di = device_id.get(i)
             .ok_or(error::new("device_id has no index".to_string()))?;
         if buf[i] != *di {
-            debug!("Invalid device ID");
+            warn!("{} presented invalid device ID", formated_addr);
             trigger::trigger_off(formated_addr).await?;
             return Ok(());
         }
@@ -183,16 +183,16 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
 
     // Update internal config
     if time > timedto.last_seen {
-        debug!("Local: {}, Tag: {}", diff, diff_tag);
+        debug!("{}: Local time diff: {}, Tag time diff: {}", formated_addr, diff, diff_tag);
 
         database::store_times(formated_addr.clone(), since_the_epoch, time).await?;
 
-        debug!("Decrypted time: {:?}", time);
+        debug!("{}: Storing decrypted time: {:?}", formated_addr, time);
     }
 
     let skew = diff.abs_diff(diff_tag as u64);
     if skew > config.allowed_skew as u64 {
-        warn!("Time was out of sync: {}", skew);
+        warn!("{} time was out of sync by {}", formated_addr, skew);
         
         // Ensure that devices with no config are not triggered
         trigger::trigger_off(formated_addr.clone()).await?;
@@ -200,7 +200,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     }            
 
     // We need to get the day
-    let current_time = chrono::Utc::now().naive_local();
+    let current_time = chrono::Local::now().naive_local();
     let day = match current_time.weekday() {
         Weekday::Mon => "monday",
         Weekday::Tue => "tuesday",
@@ -214,6 +214,8 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     // Check if we have a config for the day
     let times_option = device_config.times.get(day);
     if let None = times_option {
+        info!("{} wanted to get access on a non configured day", formated_addr);
+
         // Ensure that devices with no config are not triggered
         trigger::trigger_off(formated_addr).await?;
         return Ok(());
@@ -234,6 +236,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
                 let end_time = get_time(end_str).await?;
 
                 if current_time_local >= start_time && current_time_local <= end_time {
+                    info!("{} is allowed. Triggering", formated_addr);
                     trigger::trigger_on(formated_addr).await?;
                     return Ok(());
                 }
@@ -241,6 +244,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
         }
     }
 
+    info!("{} has no access this time of the day", formated_addr);
     trigger::trigger_off(formated_addr).await?;
     Ok(())
 }
@@ -284,7 +288,8 @@ async fn start_ble(config: &mut config::Config) -> error::Result<()> {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> error::Result<()> {
-    env_logger::init();
+    env_logger::init_from_env(
+        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"));
 
     // Start database
     database::init_database().await?;

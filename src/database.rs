@@ -3,7 +3,6 @@ use rusqlite::{Connection, params};
 use crate::error;
 
 pub(crate) struct TimeDTO {
-    pub(crate) device: String,
     pub(crate) last_seen_local: u64,
     pub(crate) last_seen: u32,
 }
@@ -25,14 +24,12 @@ pub(crate) async fn get_times(device: String) -> error::Result<TimeDTO> {
     let conn = Connection::open("fencer.db")
         .or(Err(error::new("could not open fencer.db".to_string())))?;
 
-    let timedto_obj: rusqlite::Result<TimeDTO> = conn.query_row("SELECT device, last_seen_local, last_seen FROM timestamps WHERE device = ?1", 
+    let timedto_obj: rusqlite::Result<TimeDTO> = conn.query_row("SELECT last_seen_local, last_seen FROM timestamps WHERE device = ?1", 
         params![device], |row| {
-            let device = row.get(0)?;
-            let last_seen_local = row.get(1)?;
-            let last_seen = row.get(2)?;
+            let last_seen_local = row.get(0)?;
+            let last_seen = row.get(1)?;
 
             Ok(TimeDTO {
-                device,
                 last_seen_local,
                 last_seen,
             })
@@ -40,7 +37,6 @@ pub(crate) async fn get_times(device: String) -> error::Result<TimeDTO> {
 
     Ok(timedto_obj.unwrap_or({
         TimeDTO {
-            device,
             last_seen_local: 0,
             last_seen: 0,
         }

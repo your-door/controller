@@ -1,3 +1,4 @@
 /target
 config.yaml
 fencer.db
+fencer.db-journal
