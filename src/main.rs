@@ -9,6 +9,7 @@ use aes::{Aes128, cipher::{KeyInit, generic_array::GenericArray, BlockDecrypt, t
 use bluer::{Adapter, AdapterEvent, Address};
 use byteorder::ByteOrder;
 use chrono::{Datelike, Weekday};
+use clap::Parser;
 use futures::{pin_mut, StreamExt};
 use hex::FromHex;
 use core::time;
@@ -76,8 +77,10 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
 
     let md = md_opt.unwrap();
 
-    debug!("Address: {}, Address type: {}. Name: {:?}, RSSI {:?}, Connected: {:?}, Paired: {:?}, Services: {:?}, MD: {:?}", addr, device.address_type().await?, 
+    if md.contains_key(&89) {
+        info!("Address: {}, Address type: {}. Name: {:?}, RSSI {:?}, Connected: {:?}, Paired: {:?}, Services: {:?}, MD: {:?}", addr, device.address_type().await?, 
         device.name().await?, device.rssi().await?, device.is_connected().await?, device.is_paired().await?, device.uuids().await?, device.manufacturer_data().await?);
+    }
 
     // Check if we have a config for that device
     let c = config.devices.get_mut(&formated_addr.clone());
@@ -175,7 +178,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     let time = byteorder::BE::read_u32(&buf[12..16]);
 
     // Get time from database
-    let timedto = database::get_times(formated_addr.clone().clone()).await?;
+    let timedto = database::get_times(config.database_path.clone(), formated_addr.clone().clone()).await?;
 
     // Check for time diff
     let diff = since_the_epoch - timedto.last_seen_local;
@@ -185,7 +188,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     if time > timedto.last_seen {
         debug!("{}: Local time diff: {}, Tag time diff: {}", formated_addr.clone(), diff, diff_tag);
 
-        database::store_times(formated_addr.clone().clone(), since_the_epoch, time).await?;
+        database::store_times(config.database_path.clone(), formated_addr.clone().clone(), since_the_epoch, time).await?;
 
         debug!("{}: Storing decrypted time: {:?}", formated_addr.clone(), time);
     }
@@ -286,20 +289,31 @@ async fn start_ble(config: &mut config::Config) -> error::Result<()> {
     }
 }
 
+/// Simple program to greet a person
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// Configuration path
+    #[clap(short, long)]
+    config: String,
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> error::Result<()> {
     env_logger::init_from_env(
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"));
 
-    // Start database
-    database::init_database().await?;
+    let args = Args::parse();
 
     // Load configuration from disk
-    let file_content = fs::read_to_string("config.yaml")?;
+    let file_content = fs::read_to_string(args.config)?;
     let config_result: serde_yaml::Result<config::Config> = serde_yaml::from_str(&file_content);
     if config_result.is_ok() {
         let mut config = config_result.unwrap();
         info!("Configuration: {}", config);
+
+        // Start database
+        database::init_database(&mut config).await?;
         start_ble(&mut config).await?;
     } else {
         let e = config_result.err().unwrap();

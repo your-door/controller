@@ -1,0 +1,10 @@
+#/bin/sh
+
+#DEBHELPER#
+
+# Add specific group
+groupadd ble-fencer
+
+# Create new non login user for running ble-fencer
+useradd -M -g ble-fencer --shell /bin/false ble-fencer
+usermod -L ble-fencer

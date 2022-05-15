@@ -1,0 +1,6 @@
+#/bin/sh
+
+#DEBHELPER#
+
+# chown config
+chown ble-fencer:ble-fencer /etc/ble-fencer/config.yaml

@@ -21,3 +21,22 @@ hex = "0.3.1"
 rusqlite = { version = "0.27.0", features = ["bundled"] }
 reqwest = { version = "0.11.10", features = ["json"] }
 urlencoding = "2.1.0"
+clap = { version = "3.1.18", features = ["derive"] }
+
+[package.metadata.deb]
+maintainer-scripts = "debian/"
+systemd-units = { enable = true }
+maintainer = "Fabian Faßbender <fabian.fassbender42@googlemail.com>"
+copyright = "2022, Fabian Faßbender <fabian.fassbender42@googlemail.com>"
+license-file = ["LICENSE", "4"]
+extended-description = """\
+BLE fencer enables detecting BLE tags securly. It can trigger\
+Home Assistant sensors if it detects a tag.
+"""
+depends = "$auto"
+section = "utility"
+priority = "optional"
+assets = [
+    ["target/release/ble-fencer", "usr/bin/", "755"],
+    ["default/config.yaml", "etc/ble-fencer/", "644"],
+]

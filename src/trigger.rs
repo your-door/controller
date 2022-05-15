@@ -34,7 +34,7 @@ pub(crate) async fn trigger_off(device: String, friendly_name: String, config: c
         .send()
         .await
         .or_else(|e| {
-            Err(error::new(format!("could call home assistant: {:?}", e)))
+            Err(error::new(format!("could not call home assistant: {:?}", e)))
         })?;
 
     Ok(())
@@ -62,7 +62,7 @@ pub(crate) async fn trigger_on(device: String, friendly_name: String, config: co
         .send()
         .await
         .or_else(|e| {
-            Err(error::new(format!("could call home assistant: {:?}", e)))
+            Err(error::new(format!("could not call home assistant: {:?}", e)))
         })?;
 
     Ok(())

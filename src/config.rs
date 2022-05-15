@@ -22,6 +22,7 @@ pub(crate) struct Device {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Display, Clone)]
 #[display(fmt = "home_assistant: {}, allowed_skew: {}, devices: [{:?}]", home_assistant, allowed_skew, devices)]
 pub(crate) struct Config {
+    pub(crate) database_path: String,
     pub(crate) home_assistant: HomeAssistant,
     pub(crate) allowed_skew: u32,
     pub(crate) devices: HashMap<String, Device>,
