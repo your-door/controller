@@ -6,22 +6,22 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bluer = { version = "0.14.0", features = ["bluetoothd", "id"] }
-futures = "0.3.21"
-tokio = { version = "1.17.0", features = ["io-std", "io-util", "process", "rt-multi-thread"] }
-env_logger = "0.9.0"
-log = "0.4"
-aes = "0.8.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.8"
+bluer = { version = "0.15.5", features = ["bluetoothd", "id"] }
+futures = "0.3.25"
+tokio = { version = "1.24.1", features = ["io-std", "io-util", "process", "rt-multi-thread"] }
+env_logger = "0.10.0"
+log = "0.4.17"
+aes = "0.8.2"
+serde = { version = "1.0.152", features = ["derive"] }
+serde_yaml = "0.9.16"
 derive_more = "0.99.17"
 byteorder = "1.4.3"
-chrono = "0.4.19"
-hex = "0.3.1"
-rusqlite = { version = "0.27.0", features = ["bundled"] }
-reqwest = { version = "0.11.10", features = ["json"] }
-urlencoding = "2.1.0"
-clap = { version = "3.1.18", features = ["derive"] }
+chrono = "0.4.23"
+hex = "0.4.3"
+rusqlite = { version = "0.28.0", features = ["bundled"] }
+reqwest = { version = "0.11.13", features = ["json"] }
+urlencoding = "2.1.2"
+clap = { version = "4.0.32", features = ["derive"] }
 
 [package.metadata.deb]
 maintainer-scripts = "debian/"
