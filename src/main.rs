@@ -254,7 +254,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
 
 async fn start_ble(config: &mut config::Config) -> error::Result<()> {
     let session = bluer::Session::new().await?;
-    let adapter = session.adapter("hci1")?;
+    let adapter = session.adapter("hci0")?;
     adapter.set_powered(true).await?;
 
     let session = bluer::Session::new().await?;
