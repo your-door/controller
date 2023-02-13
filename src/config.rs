@@ -16,6 +16,7 @@ pub(crate) struct Device {
     pub(crate) name: String,
     pub(crate) device_id: String,
     pub(crate) manufacture: u16,
+    pub(crate) cutoff_rssi: i16,
     pub(crate) allowed_times: HashMap<String, Vec<String>>,
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "ble-fencer"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -39,4 +39,7 @@ priority = "optional"
 assets = [
     ["target/release/ble-fencer", "usr/bin/", "755"],
     ["default/config.yaml", "etc/ble-fencer/", "644"],
+]
+conf-files = [
+    "/etc/ble-fencer/config.yaml"
 ]

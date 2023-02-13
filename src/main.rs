@@ -78,7 +78,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     let md = md_opt.unwrap();
 
     if md.contains_key(&89) {
-        info!("Address: {}, Address type: {}. Name: {:?}, RSSI {:?}, Connected: {:?}, Paired: {:?}, Services: {:?}, MD: {:?}", addr, device.address_type().await?, 
+        debug!("Address: {}, Address type: {}. Name: {:?}, RSSI {:?}, Connected: {:?}, Paired: {:?}, Services: {:?}, MD: {:?}", addr, device.address_type().await?, 
         device.name().await?, device.rssi().await?, device.is_connected().await?, device.is_paired().await?, device.uuids().await?, device.manufacturer_data().await?);
     }
 
@@ -91,6 +91,24 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     }
 
     let device_config = c.unwrap();
+
+    // Check if inside RSSI cutoff, this can be used to limit range
+    let rssi_res = device.rssi().await;
+    if let Err(_err) = rssi_res {
+        // Ensure that devices with no config are not triggered
+        trigger::trigger_off(formated_addr.clone(), formated_addr.clone(), config.home_assistant.clone()).await?;
+        return Ok(());
+    }
+
+    // We have a RSSI, check it
+    let rssi_opt = rssi_res.unwrap();
+    if let Some(rssi) = rssi_opt {
+        if rssi < device_config.cutoff_rssi {
+            // Ensure that devices with no config are not triggered
+            trigger::trigger_off(formated_addr.clone(), formated_addr.clone(), config.home_assistant.clone()).await?;
+            return Ok(());
+        }
+    }
 
     // Check if we can read the key from config
     let decoded_key_res = get_from_hex_array(&device_config.key).await;
@@ -169,9 +187,32 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
     }
 
     // Check for restart counter
-    // TODO
+    let restart_counter_known = database::get_restarts(config.database_path.clone(), formated_addr.clone().clone()).await?;
+    let restart_counter_device = byteorder::BE::read_u16(&buf[10..12]);
 
+    // We only check for not being equal
+    if restart_counter_known != restart_counter_device {
+        // Check for overflow
+        if restart_counter_known == 65535 {
+            // Its allowed to be 0 again
+            if restart_counter_device == 0 {
+                database::store_restarts(config.database_path.clone(), formated_addr.clone().clone(), restart_counter_device).await?;
+            } else {
+                warn!("{} presented too high restart counter [overflow]", formated_addr.clone());
+                trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
+                return Ok(());
+            }
+        } else if restart_counter_known + 1 == restart_counter_device {
+            database::store_restarts(config.database_path.clone(), formated_addr.clone().clone(), restart_counter_device).await?;
+        } else {
+            warn!("{} presented too high restart counter", formated_addr.clone());
+            trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
+            return Ok(());
+        }
+    }
 
+    debug!("Address: {}, restart counter: {}, restart counter known: {}", addr, restart_counter_device, restart_counter_known); 
+        
     // Check for time
     let start = chrono::Utc::now();
     let since_the_epoch = start.timestamp() as u64;
