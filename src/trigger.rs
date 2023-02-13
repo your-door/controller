@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use log::debug;
+use log::{debug, warn};
 use serde::Serialize;
 
 use crate::{error, config};
@@ -35,7 +35,12 @@ pub(crate) async fn trigger_off(device: String, friendly_name: String, config: c
         .await
         .or_else(|e| {
             Err(error::new(format!("could not call home assistant: {:?}", e)))
-        })?;
+        });
+
+    if let Err(err) = _res {
+        warn!("Could not trigger offline state for {}", device);
+        warn!("{}", err);
+    }
 
     Ok(())
 }
@@ -63,7 +68,12 @@ pub(crate) async fn trigger_on(device: String, friendly_name: String, config: co
         .await
         .or_else(|e| {
             Err(error::new(format!("could not call home assistant: {:?}", e)))
-        })?;
+        });
+       
+    if let Err(err) = _res {
+        warn!("Could not trigger online state for {}", device);
+        warn!("{}", err);
+    }
 
     Ok(())
 }

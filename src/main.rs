@@ -50,8 +50,8 @@ async fn get_time(str: &str) -> error::Result<chrono::NaiveTime> {
         .parse::<u32>()
         .or(Err(error::new("could not parse seconds to int".to_string())))?;
 
-    let time_obj = chrono::NaiveTime::from_hms(hours, minutes, seconds);
-    Ok(time_obj)
+    let time_obj = chrono::NaiveTime::from_hms_opt(hours, minutes, seconds);
+    Ok(time_obj.unwrap())
 }
 
 async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Config) -> error::Result<()> {
