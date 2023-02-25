@@ -11,5 +11,14 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cargo install cargo-deb
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-deb
+          version: latest
+          use-tool-cache: true
+      - run: apt install libdbus-1-dev pkg-config
       - run: cargo deb -- --release
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ble.deb
+          path: target/debian/ble-fencer*.deb
