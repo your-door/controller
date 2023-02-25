@@ -4,6 +4,7 @@ mod config;
 mod trigger;
 mod error;
 mod database;
+mod entity;
 
 use aes::{Aes128, cipher::{KeyInit, generic_array::GenericArray, BlockDecrypt, typenum}};
 use bluer::{Adapter, AdapterEvent, Address};
@@ -186,24 +187,26 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
         }
     }
 
+    // Get entity state
+    let mut entity_state = database::get_entity_state(device_config.name.clone(), formated_addr.clone().clone(), config.home_assistant.clone()).await?;
+
     // Check for restart counter
-    let restart_counter_known = database::get_restarts(config.database_path.clone(), formated_addr.clone().clone()).await?;
     let restart_counter_device = byteorder::BE::read_u16(&buf[10..12]);
 
     // We only check for not being equal
-    if restart_counter_known != restart_counter_device {
+    if entity_state.restart_count != restart_counter_device {
         // Check for overflow
-        if restart_counter_known == 65535 {
+        if entity_state.restart_count == 65535 {
             // Its allowed to be 0 again
             if restart_counter_device == 0 {
-                database::store_restarts(config.database_path.clone(), formated_addr.clone().clone(), restart_counter_device).await?;
+                entity_state.restart_count = restart_counter_device;
             } else {
                 warn!("{} presented too high restart counter [overflow]", formated_addr.clone());
                 trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
                 return Ok(());
             }
-        } else if restart_counter_known + 1 == restart_counter_device {
-            database::store_restarts(config.database_path.clone(), formated_addr.clone().clone(), restart_counter_device).await?;
+        } else if entity_state.restart_count + 1 == restart_counter_device {
+            entity_state.restart_count = restart_counter_device;
         } else {
             warn!("{} presented too high restart counter", formated_addr.clone());
             trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
@@ -211,28 +214,29 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
         }
     }
 
-    debug!("Address: {}, restart counter: {}, restart counter known: {}", addr, restart_counter_device, restart_counter_known); 
+    debug!("Address: {}, restart counter: {}, restart counter known: {}", addr, restart_counter_device, entity_state.restart_count); 
         
     // Check for time
     let start = chrono::Utc::now();
     let since_the_epoch = start.timestamp() as u64;
     let time = byteorder::BE::read_u32(&buf[12..16]);
 
-    // Get time from database
-    let timedto = database::get_times(config.database_path.clone(), formated_addr.clone().clone()).await?;
-
     // Check for time diff
-    let diff = since_the_epoch - timedto.last_seen_local;
-    let diff_tag = time - timedto.last_seen;
+    let diff = since_the_epoch - entity_state.last_seen_local;
+    let diff_tag = time - entity_state.last_seen;
 
     // Update internal config
-    if time > timedto.last_seen {
+    if time > entity_state.last_seen {
         debug!("{}: Local time diff: {}, Tag time diff: {}", formated_addr.clone(), diff, diff_tag);
 
-        database::store_times(config.database_path.clone(), formated_addr.clone().clone(), since_the_epoch, time).await?;
+        entity_state.last_seen = time;
+        entity_state.last_seen_local = since_the_epoch;
 
         debug!("{}: Storing decrypted time: {:?}", formated_addr.clone(), time);
     }
+
+    // We sync state here
+    database::update_entity_state(entity_state, formated_addr.clone(), config.home_assistant.clone()).await?;
 
     let skew = diff.abs_diff(diff_tag as u64);
     if skew > config.allowed_skew as u64 {
@@ -352,9 +356,6 @@ async fn main() -> error::Result<()> {
     if config_result.is_ok() {
         let mut config = config_result.unwrap();
         info!("Configuration: {}", config);
-
-        // Start database
-        database::init_database(&mut config).await?;
         start_ble(&mut config).await?;
     } else {
         let e = config_result.err().unwrap();
