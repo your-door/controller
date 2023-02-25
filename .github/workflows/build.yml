@@ -1,0 +1,15 @@
+on: [push]
+
+name: Build
+
+jobs:
+  build_and_test:
+    name: Controller build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo install cargo-deb
+      - run: cargo deb -- --release

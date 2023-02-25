@@ -2,14 +2,14 @@
 Description=BLE fencer controls BLE tags and triggering Home Assistant sensors
 After=network.target
 Wants=network-online.target
-User=ble-fencer
-Group=ble-fencer
 
 [Service]
 Restart=always
 Type=simple
 ExecStart=/usr/bin/ble-fencer --config /etc/ble-fencer/config.yaml
 Environment=
+User=ble-fencer
+Group=ble-fencer
 
 [Install]
 WantedBy=multi-user.target
