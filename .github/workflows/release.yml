@@ -9,8 +9,7 @@ on:
 jobs:
   publish:
     permissions:
-      contents: read
-      id-token: write
+      contents: write
     name: 'Publish release'
     runs-on: ubuntu-latest
     steps:
