@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  release:
+    types:
+      - released
+  workflow_dispatch: {}
+
+jobs:
+  publish:
+    permissions:
+      contents: read
+      id-token: write
+    name: 'Publish release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Extract project from tag'
+        id: set-project-from-tag
+        run: |
+          version="$(echo "$GITHUB_REF" | sed 's~^refs/tags/v(.)$~\1~')"
+          echo "extract project: ${GITHUB_REF}, ${version}"
+          echo "version=${version}" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-deb
+          version: latest
+          use-tool-cache: true
+      - run: sudo apt install libdbus-1-dev pkg-config
+      - run: cargo deb --deb-version ${{ steps.set-project-from-tag.outputs.version }} -- --release
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/debian/ble-fencer_${{ steps.set-project-from-tag.outputs.version }}_amd64.deb
+          asset_name: ble-fencer_${{ steps.set-project-from-tag.outputs.version }}_amd64.deb
+          tag: ${{ github.ref }}
