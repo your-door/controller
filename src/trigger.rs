@@ -22,7 +22,10 @@ pub(crate) async fn trigger_off(device: String, friendly_name: String, config: c
     let res = client.get(url)
         .bearer_auth(config.token)
         .send()
-        .await?;
+        .await
+        .or_else(|e| {
+            Err(error::new(format!("could not call home assistant: {:?}", e)))
+        })?;
 
     // We get out of here since we don't need to update unknown entities
     if res.status().as_u16() == 404 {
