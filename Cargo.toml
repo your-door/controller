@@ -6,22 +6,22 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bluer = { version = "0.15.5", features = ["bluetoothd", "id"] }
+bluer = { version = "0.15.7", features = ["bluetoothd", "id"] }
 futures = "0.3.26"
-tokio = { version = "1.24.1", features = ["io-std", "io-util", "process", "rt-multi-thread"] }
+tokio = { version = "1.25.0", features = ["io-std", "io-util", "process", "rt-multi-thread"] }
 env_logger = "0.10.0"
 log = "0.4.17"
 aes = "0.8.2"
 serde = { version = "1.0.152", features = ["derive"] }
-serde_yaml = "0.9.16"
+serde_yaml = "0.9.17"
 derive_more = "0.99.17"
 byteorder = "1.4.3"
 chrono = "0.4.23"
 hex = "0.4.3"
 rusqlite = { version = "0.28.0", features = ["bundled"] }
-reqwest = { version = "0.11.13", features = ["json"] }
+reqwest = { version = "0.11.14", features = ["json"] }
 urlencoding = "2.1.2"
-clap = { version = "4.0.32", features = ["derive"] }
+clap = { version = "4.1.6", features = ["derive"] }
 
 [package.metadata.deb]
 maintainer-scripts = "debian/"
