@@ -20,7 +20,7 @@ pub(crate) async fn trigger_off(device: String, friendly_name: String, config: c
     // We only trigger off for known entities
     let url = format!("{}states/{}", config.url, urlencoding::encode(format!("binary_sensor.{}", device.replace(":", "_")).as_str()));
     let res = client.get(url)
-        .bearer_auth(config.token)
+        .bearer_auth(config.token.clone())
         .send()
         .await
         .or_else(|e| {
@@ -45,7 +45,7 @@ pub(crate) async fn trigger_off(device: String, friendly_name: String, config: c
     debug!("Calling URL: {}", url);
 
     let _res = client.post(url)
-        .bearer_auth(config.token)
+        .bearer_auth(config.token.clone())
         .json(&entity)
         .send()
         .await
