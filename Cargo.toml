@@ -21,7 +21,7 @@ hex = "0.4.3"
 rusqlite = { version = "0.28.0", features = ["bundled"] }
 reqwest = { version = "0.11.14", features = ["json"] }
 urlencoding = "2.1.2"
-clap = { version = "4.0.32", features = ["derive"] }
+clap = { version = "4.1.6", features = ["derive"] }
 
 [package.metadata.deb]
 maintainer-scripts = "debian/"
