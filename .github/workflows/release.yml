@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: write
     name: 'Publish release'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: 'Extract project from tag'
         id: set-project-from-tag
