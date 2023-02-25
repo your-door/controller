@@ -16,7 +16,7 @@ jobs:
           crate: cargo-deb
           version: latest
           use-tool-cache: true
-      - run: apt install libdbus-1-dev pkg-config
+      - run: sudo apt install libdbus-1-dev pkg-config
       - run: cargo deb -- --release
       - uses: actions/upload-artifact@v3
         with:
