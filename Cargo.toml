@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 bluer = { version = "0.15.7", features = ["bluetoothd", "id"] }
 futures = "0.3.26"
-tokio = { version = "1.24.1", features = ["io-std", "io-util", "process", "rt-multi-thread"] }
+tokio = { version = "1.25.0", features = ["io-std", "io-util", "process", "rt-multi-thread"] }
 env_logger = "0.10.0"
 log = "0.4.17"
 aes = "0.8.2"
