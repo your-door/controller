@@ -10,6 +10,7 @@ devices:
     device_id: 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     manufacture: 89
     name: DEFAULT
+    cutoff_rssi: -99
     allowed_times:
       sunday:
         - "00:00:00-23:59:59"
