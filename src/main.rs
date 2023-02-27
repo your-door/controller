@@ -205,7 +205,7 @@ async fn query_device(adapter: &Adapter, addr: Address, config: &mut config::Con
         } else if restart_counter_known + 1 == restart_counter_device {
             database::store_restarts(config.database_path.clone(), formated_addr.clone().clone(), restart_counter_device).await?;
         } else {
-            warn!("{} presented too high restart counter", formated_addr.clone());
+            warn!("{} presented too high restart counter. Was {} should be {}", formated_addr.clone(), restart_counter_device, restart_counter_known);
             trigger::trigger_off(formated_addr.clone(), device_config.name.clone(), config.home_assistant.clone()).await?;
             return Ok(());
         }
@@ -337,6 +337,14 @@ struct Args {
     /// Configuration path
     #[clap(short, long)]
     config: String,
+
+    /// Manipulate a entity
+    #[clap(short, long)]
+    entity: Option<String>,
+
+    /// Set restart counter
+    #[clap(short, long)]
+    restart_counter: Option<u16>,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -351,17 +359,27 @@ async fn main() -> error::Result<()> {
     let config_result: serde_yaml::Result<config::Config> = serde_yaml::from_str(&file_content);
     if config_result.is_ok() {
         let mut config = config_result.unwrap();
-        info!("Configuration: {}", config);
 
         // Start database
         database::init_database(&mut config).await?;
-        start_ble(&mut config).await?;
+
+        // Check if we manipulate a state
+        if let Some(entity_id) = args.entity {
+            if let Some(restart_counter) = args.restart_counter {
+                database::store_restarts(config.database_path.clone(), entity_id.clone(), restart_counter).await?;
+                info!("Set \"{}\" restart counter to {}", entity_id.clone(), restart_counter);
+            }
+        } else {
+            start_ble(&mut config).await?;
+
+            loop {
+                tokio::time::sleep(time::Duration::from_secs(60)).await;
+            }
+        }
     } else {
         let e = config_result.err().unwrap();
         error!("Could not read config: {}", &e);
     }
-    
-    loop{
-        tokio::time::sleep(time::Duration::from_secs(60)).await;
-    }
+
+    Ok(())
 }

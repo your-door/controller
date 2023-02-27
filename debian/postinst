@@ -3,4 +3,4 @@
 #DEBHELPER#
 
 # chown config
-chown ble-fencer:ble-fencer /etc/ble-fencer/config.yaml
+chown -R ble-fencer:ble-fencer /etc/ble-fencer
