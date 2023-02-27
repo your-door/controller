@@ -19,43 +19,48 @@ pub(crate) async fn trigger_off(device: String, friendly_name: String, config: c
 
     // We only trigger off for known entities
     let url = format!("{}states/{}", config.url, urlencoding::encode(format!("binary_sensor.{}", device.replace(":", "_")).as_str()));
-    let res = client.get(url)
+    let res_res = client.get(url)
         .bearer_auth(config.token.clone())
-        .send()
-        .await
-        .or_else(|e| {
-            Err(error::new(format!("could not call home assistant: {:?}", e)))
-        })?;
-
-    // We get out of here since we don't need to update unknown entities
-    if res.status().as_u16() == 404 {
-        return Ok(())
-    } 
-
-    let mut attributes = HashMap::new();
-    attributes.insert("friendly_name".to_string(), friendly_name);
-
-    let entity = Entity {
-        entity_id: format!("binary_sensor.{}", device),
-        state: "off".to_string(),
-        attributes,
-    };
-
-    let url = format!("{}states/{}", config.url, urlencoding::encode(format!("binary_sensor.{}", device.replace(":", "_")).as_str()));
-    debug!("Calling URL: {}", url);
-
-    let _res = client.post(url)
-        .bearer_auth(config.token.clone())
-        .json(&entity)
         .send()
         .await
         .or_else(|e| {
             Err(error::new(format!("could not call home assistant: {:?}", e)))
         });
 
-    if let Err(err) = _res {
+    if let Err(err) = res_res {
         warn!("Could not trigger offline state for {}", device);
         warn!("{}", err);
+    } else if let Ok(res) = res_res {
+        // We get out of here since we don't need to update unknown entities
+        if res.status().as_u16() == 404 {
+            return Ok(())
+        } 
+
+        let mut attributes = HashMap::new();
+        attributes.insert("friendly_name".to_string(), friendly_name);
+
+        let entity = Entity {
+            entity_id: format!("binary_sensor.{}", device),
+            state: "off".to_string(),
+            attributes,
+        };
+
+        let url = format!("{}states/{}", config.url, urlencoding::encode(format!("binary_sensor.{}", device.replace(":", "_")).as_str()));
+        debug!("Calling URL: {}", url);
+
+        let _res = client.post(url)
+            .bearer_auth(config.token.clone())
+            .json(&entity)
+            .send()
+            .await
+            .or_else(|e| {
+                Err(error::new(format!("could not call home assistant: {:?}", e)))
+            });
+
+        if let Err(err) = _res {
+            warn!("Could not trigger offline state for {}", device);
+            warn!("{}", err);
+        }
     }
 
     Ok(())

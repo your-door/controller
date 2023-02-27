@@ -9,7 +9,7 @@ pub(crate) struct TimeDTO {
 
 pub(crate) async fn init_database(config: &mut config::Config) -> error::Result<()> {
     let conn = Connection::open(config.database_path.clone())
-        .or(Err(error::new("could not open fencer.db".to_string())))?;
+        .or_else(|err| Err(error::new(format!("could not open fencer.db: {:?}", err).to_string())))?;
 
     conn.execute("CREATE TABLE IF NOT EXISTS timestamps (device TEXT PRIMARY KEY, last_seen_local INTEGER, last_seen INTEGER)", [])
         .or(Err(error::new("could not create timestamps table".to_string())))?;
