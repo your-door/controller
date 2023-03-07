@@ -12,7 +12,7 @@ tokio = { version = "1.26.0", features = ["io-std", "io-util", "process", "rt-mu
 env_logger = "0.10.0"
 log = "0.4.17"
 aes = "0.8.2"
-serde = { version = "1.0.152", features = ["derive"] }
+serde = { version = "1.0.153", features = ["derive"] }
 serde_yaml = "0.9.19"
 derive_more = "0.99.17"
 byteorder = "1.4.3"
