@@ -19,7 +19,7 @@ byteorder = "1.4.3"
 chrono = "0.4.24"
 hex = "0.4.3"
 rusqlite = { version = "0.28.0", features = ["bundled"] }
-reqwest = { version = "0.11.14", features = ["json"] }
+reqwest = { version = "0.11.15", features = ["json"] }
 urlencoding = "2.1.2"
 clap = { version = "4.1.13", features = ["derive"] }
 
